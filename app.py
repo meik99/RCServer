@@ -9,12 +9,35 @@ import socket
 import sys
 import argparse
 
-from gpiozero import LED
+from gpiozero import LED, Device
+from gpiozero.pins.mock import MockFactory
+
 from time import sleep
 
-onOffSwitch = LED(4)
-blueSwitch = LED(17)
-brownSwitch = LED(27)
+TESTING = True
+
+if TESTING is False:
+    Device.pin_factory = MockFactory()
+
+moveOnOffSwitch = LED(24)
+moveCircuitPlusSwitch = LED(22)
+moveCircuitMinusSwitch = LED(23)
+
+steerOnOffSwitch = LED(27)
+steerCircuitPlusSwitch = LED(4)
+steerCircuitMinusSwitch = LED(17)
+
+
+# Connected physical switch wrong
+# so off is on and on is off
+def on():
+    moveOnOffSwitch.off()
+    steerOnOffSwitch.off()
+
+
+def off():
+    moveOnOffSwitch.on()
+    steerOnOffSwitch.on()
 
 
 class MainHandler(tornado.web.RequestHandler, ABC):
@@ -30,19 +53,29 @@ class SimpleWebSocket(tornado.websocket.WebSocketHandler, ABC):
 
     def on_message(self, message):
         if message == "forward":
-            onOffSwitch.off()
-            blueSwitch.off()
-            brownSwitch.off()
-            onOffSwitch.on()
+            moveOnOffSwitch.on()
+            moveCircuitPlusSwitch.on()
+            moveCircuitMinusSwitch.on()
+            moveOnOffSwitch.off()
         elif message == "backward":
-            onOffSwitch.off()
-            blueSwitch.on()
-            brownSwitch.on()
-            onOffSwitch.on()
+            moveOnOffSwitch.on()
+            moveCircuitPlusSwitch.off()
+            moveCircuitMinusSwitch.off()
+            moveOnOffSwitch.off()
+        elif message == "left":
+            steerOnOffSwitch.on()
+            steerCircuitPlusSwitch.off()
+            steerCircuitMinusSwitch.off()
+            steerOnOffSwitch.off()
+        elif message == "right":
+            steerOnOffSwitch.on()
+            steerCircuitPlusSwitch.on()
+            steerCircuitMinusSwitch.on()
+            steerOnOffSwitch.off()
         elif message == "stop":
-            onOffSwitch.off()
-            blueSwitch.off()
-            brownSwitch.off()
+            off()
+        print(message)
+        self.write_message(message)
 
     def on_close(self):
         self.connections.remove(self)
@@ -75,12 +108,9 @@ def udp_socket():
 
 
 if __name__ == "__main__":
-    onOffSwitch.off()
-    blueSwitch.off()
-    brownSwitch.off()
-    onOffSwitch.on()
-    sleep(0.5)
-    onOffSwitch.off()
+    on()
+    sleep(.5)
+    off()
 
     threadedSocket = threading.Thread(target=udp_socket)
     threadedSocket.start()
