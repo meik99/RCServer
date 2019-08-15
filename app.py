@@ -101,10 +101,9 @@ def udp_socket():
 
     hostname = socket.gethostbyname(socket.getfqdn())
 
-    while 1:
-        data = magic + hostname
-        sock.sendto(data.encode(encoding='UTF-8', errors='strict'), ("<broadcast>", port))
-        sleep(5)
+    data = magic + hostname
+    sock.sendto(data.encode(encoding='UTF-8', errors='strict'), ("<broadcast>", port))
+    sock.close()
 
 
 if __name__ == "__main__":
@@ -112,9 +111,12 @@ if __name__ == "__main__":
     sleep(.5)
     off()
 
-    threadedSocket = threading.Thread(target=udp_socket)
-    threadedSocket.start()
-
     app = make_app()
     app.listen(8888)
+
+    task = tornado.ioloop.PeriodicCallback(
+        udp_socket,
+        5 * 1000
+    )
+    task.start()
     tornado.ioloop.IOLoop.current().start()
